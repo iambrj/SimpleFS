@@ -97,7 +97,7 @@ ssize_t FileSystem::stat(size_t inumber) {
 
 // Read from inode -------------------------------------------------------------
 
-ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offset) {
+ssize_t FileSystem::read(size_t inumber, void *data, size_t length, size_t offset) {
 	// Load inode information
 
 	// Adjust length
@@ -108,7 +108,7 @@ ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offse
 
 // Write to inode --------------------------------------------------------------
 
-ssize_t FileSystem::write(size_t inumber, char *data, size_t length, size_t offset) {
+ssize_t FileSystem::write(size_t inumber, void *data, size_t length, size_t offset) {
 	// Load inode
 
 	// Write block and copy to data

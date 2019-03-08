@@ -37,7 +37,7 @@ Disk::~Disk() {
     }
 }
 
-void Disk::sanity_check(int blocknum, char *data) {
+void Disk::sanity_check(int blocknum, void *data) {
     char what[BUFSIZ];
 
     if (blocknum < 0) {
@@ -55,7 +55,7 @@ void Disk::sanity_check(int blocknum, char *data) {
     }
 }
 
-void Disk::read(int blocknum, char *data) {
+void Disk::read(int blocknum, void *data) {
     sanity_check(blocknum, data);
 
     if (lseek(FileDescriptor, blocknum*BLOCK_SIZE, SEEK_SET) < 0) {
@@ -73,7 +73,7 @@ void Disk::read(int blocknum, char *data) {
     Reads++;
 }
 
-void Disk::write(int blocknum, char *data) {
+void Disk::write(int blocknum, void *data) {
     sanity_check(blocknum, data);
 
     if (lseek(FileDescriptor, blocknum*BLOCK_SIZE, SEEK_SET) < 0) {
