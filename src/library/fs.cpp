@@ -103,14 +103,61 @@ bool FileSystem::format(Disk *disk) {
 // Mount file system -----------------------------------------------------------
 
 bool FileSystem::mount(Disk *disk) {
-	// Read superblock
+
+	if(disk -> mounted())
+	{
+		std::cout << "Already mounted!" << std::endl;
+		return false;
+	}
 
 	// Set device and mount
+	
+	disk -> mount();
 
-	// Copy metadata
 
-	// Allocate free block bitmap
+	// Load SuperBlock into main memory
 
+	memSuperBlock = new Block;
+	disk -> read(0, memSuperBlock);
+	if(memSuperBlock -> Super.MagicNumber != 0xf0f03410)
+	{
+		std::cout << "MagicNumber missing!" << std::endl;
+		return false;
+	}
+
+	// Load Inode blocks into main memory
+
+	memInodes = new Block[memSuperBlock -> Super.InodeBlocks];
+	for(uint32_t i = 0; i < (memSuperBlock -> Super.InodeBlocks); i++)
+	{
+		disk -> read(i + 1, memInodes[i].Data);
+	}
+
+	// Load bitmap into main memory by going through all the inodes
+
+	memBmap = new bool [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
+	memBmap = 0;
+
+	for(uint32_t i = 1; i <= memSuperBlock -> Super.InodeBlocks; i++)
+	{
+		Block block;
+		disk -> read(i, &block.Data);
+
+		for(uint32_t j = 0; j < INODES_PER_BLOCK; j++)
+		{
+			if(block.Inodes[j].Valid)
+			{
+				for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
+				{
+					if(block.Inodes[j].Direct[k] != BLOCK_UNSET)
+					{
+						memBmap[block.Inodes[j].Direct[k]] = true;
+					}
+				}
+			}
+		}
+	}
+	
 	return true;
 }
 
