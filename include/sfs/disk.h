@@ -16,7 +16,7 @@ private:
     // @param	blocknum    Block to operate on
     // @param	data	    Buffer to operate on
     // Throws invalid_argument exception on error.
-    void sanity_check(int blocknum, char *data);
+    void sanity_check(int blocknum, void *data);
 
 public:
     // Number of bytes per block
@@ -49,10 +49,10 @@ public:
     // Read block from disk
     // @param	blocknum    Block to read from
     // @param	data	    Buffer to read into
-    void read(int blocknum, char *data);
+    void read(int blocknum, void *data);
     
     // Write block to disk
     // @param	blocknum    Block to write to
     // @param	data	    Buffer to write from
-    void write(int blocknum, char *data);
+    void write(int blocknum, void *data);
 };

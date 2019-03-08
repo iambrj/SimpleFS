@@ -10,6 +10,7 @@ class FileSystem {
 public:
     const static uint32_t MAGIC_NUMBER	     = 0xf0f03410;
     const static uint32_t INODES_PER_BLOCK   = 128;
+	const static uint32_t INODES_PERCENT = 10;
     const static uint32_t POINTERS_PER_INODE = 5;
     const static uint32_t POINTERS_PER_BLOCK = 1024;
 
@@ -49,6 +50,6 @@ public:
     bool    remove(size_t inumber);
     ssize_t stat(size_t inumber);
 
-    ssize_t read(size_t inumber, char *data, size_t length, size_t offset);
-    ssize_t write(size_t inumber, char *data, size_t length, size_t offset);
+    ssize_t read(size_t inumber, void *data, size_t length, size_t offset);
+    ssize_t write(size_t inumber, void *data, size_t length, size_t offset);
 };
