@@ -4,10 +4,10 @@
 
 #include <stdexcept>
 
-#include <errno.h>
-#include <fcntl.h>
+#include <cerrno>
+#include <cfcntl>
 #include <cstring>
-#include <unistd.h>
+#include <cunistd>
 
 void Disk::open(const char *path, size_t nblocks) {
     FileDescriptor = ::open(path, O_RDWR|O_CREAT, 0600);
@@ -46,8 +46,7 @@ void Disk::sanity_check(int blocknum, char *data) {
     }
 
     if (blocknum >= (int)Blocks) {
-    	snprintf(what, BUFSIZ, "blocknum (%d) is too big!", blocknum);
-    	throw std::invalid_argument(what);
+    	snprintf(what, BUFSIZ, "blocknum (%d) is too big!", blocknum); throw std::invalid_argument(what);
     }
 
     if (data == NULL) {
