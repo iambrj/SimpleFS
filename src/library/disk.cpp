@@ -4,10 +4,10 @@
 
 #include <stdexcept>
 
-#include <cerrno>
-#include <cfcntl>
+#include <errno.h>
+#include <fcntl.h>
 #include <cstring>
-#include <cunistd>
+#include <unistd.h>
 
 void Disk::open(const char *path, size_t nblocks) {
     FileDescriptor = ::open(path, O_RDWR|O_CREAT, 0600);
