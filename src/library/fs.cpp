@@ -127,7 +127,7 @@ bool FileSystem::mount(Disk *disk) {
 
 	// Load Inode blocks into main memory
 
-	memInodes = new Block[memSuperBlock -> Super.InodeBlocks];
+	memInodes = new Block [memSuperBlock -> Super.InodeBlocks];
 	for(uint32_t i = 0; i < (memSuperBlock -> Super.InodeBlocks); i++)
 	{
 		disk -> read(i + 1, memInodes[i].Data);
@@ -166,8 +166,25 @@ bool FileSystem::mount(Disk *disk) {
 ssize_t FileSystem::create() {
 	// Locate free inode in inode table
 
-	// Record inode if found
-	return 0;
+	for(uint32_t i = 0, j; i < memSuperBlock -> Super.InodeBlocks; i++)
+	{
+		for(j = 0; j < INODES_PER_BLOCK; j++)
+
+		if(!memInodes[i].Inodes[j].Valid)
+		{
+			memInodes[i].Inodes[j].Valid = 1;
+			memInodes[i].Inodes[j].Size = 0;
+			for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
+			{
+				memInodes[i].Inodes[j].Direct[k] = 0;
+			}
+			memInodes[i].Inodes[j].Indirect = 0;
+		}
+
+		return i * INODES_PER_BLOCK + j;
+	}
+
+	return -1;
 }
 
 // Remove inode ----------------------------------------------------------------
