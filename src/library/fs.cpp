@@ -257,7 +257,31 @@ bool FileSystem::remove(size_t inumber) {
 // Inode stat ------------------------------------------------------------------
 
 ssize_t FileSystem::stat(size_t inumber) {
-	return 0;
+
+	// TODO: abstract these invalid checks into a private function
+	
+	// Out-of-bounds checks
+
+	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	{
+		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
+		return -1;
+	}
+
+	// TODO: abstract these into a private function
+
+	uint32_t blockNumber = inumber / INODES_PER_BLOCK;
+	uint32_t inodeNumber = inumber % INODES_PER_BLOCK;
+
+	// Check for invalid inode
+
+	if(!memInodes[blockNumber].Inodes[inodeNumber].Valid)
+	{
+		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
+		return -1;
+	}
+
+	return memInodes[blockNumber].Inodes[inodeNumber].Size;
 }
 
 // Read from inode -------------------------------------------------------------
