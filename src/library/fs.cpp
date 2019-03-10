@@ -190,20 +190,73 @@ ssize_t FileSystem::create() {
 // Remove inode ----------------------------------------------------------------
 
 bool FileSystem::remove(size_t inumber) {
-	// Load inode information
+	
+	// Out-of-bounds checks
+
+	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	{
+		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
+		return false;
+	}
+
+	// TODO: abstract these into a private function
+
+	uint32_t blockNumber = inumber / INODES_PER_BLOCK;
+	uint32_t inodeNumber = inumber % INODES_PER_BLOCK;
+
+	// Double free check
+
+	if(!memInodes[blockNumber].Inodes[inodeNumber].Valid)
+	{
+		std::cout << "Error: trying to deleting free inode" << std::endl;
+		return false;
+	}
+
+	// Clear inode in inode table
+
+	memInodes[blockNumber].Inodes[inodeNumber].Size = 0;
+	memInodes[blockNumber].Inodes[inodeNumber].Valid = 0;
 
 	// Free direct blocks
 
+	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
+	{
+		memInodes[blockNumber].Inodes[inodeNumber].Direct[i] = 0;
+	}
+
 	// Free indirect blocks
 
-	// Clear inode in inode table
+	memInodes[blockNumber].Inodes[inodeNumber].Indirect = 0;
+
+	// Update bitmap
+	// TODO:	improve efficiency by directly setting only freed blocks to false
+	// 			instead of rechecking every data block
+
+	memBmap = 0;
+	for(uint32_t i = 1; i <= memSuperBlock -> Super.InodeBlocks; i++)
+	{
+
+		for(uint32_t j = 0; j < INODES_PER_BLOCK; j++)
+		{
+			if(memInodes[i].Inodes[j].Valid)
+			{
+				for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
+				{
+					if(memInodes[i].Inodes[j].Direct[k] != BLOCK_UNSET)
+					{
+						memBmap[memInodes[i].Inodes[j].Direct[k]] = true;
+					}
+				}
+			}
+		}
+	}
+	
 	return true;
 }
 
 // Inode stat ------------------------------------------------------------------
 
 ssize_t FileSystem::stat(size_t inumber) {
-	// Load inode information
 	return 0;
 }
 
