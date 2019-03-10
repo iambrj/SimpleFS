@@ -37,9 +37,14 @@ class FileSystem {
 			char	    Data[Disk::BLOCK_SIZE];	    // Data block
 		};
 
-		// TODO: Internal helper functions
+		// Internal helper functions
 
-		// TODO: Internal member variables
+		bool isInumberValid(ssize_t inumber);
+		uint32_t getBlockNumber(ssize_t inumber);
+		uint32_t getInodeNumber(ssize_t inumber);
+
+		// Internal member variables
+
 		bool *memBmap;
 		Block *memSuperBlock;
 		Block *memInodes;
