@@ -12,10 +12,9 @@
 // Debug file system -----------------------------------------------------------
 
 void FileSystem::debug(Disk *disk) {
-	Block block;
-
+	Block block; 
 	// Read Superblock
-	disk->read(0, block.Data);
+	disk -> read(0, block.Data);
 
 	std::cout << "SuperBlock:" << std::endl;
 	if(block.Super.MagicNumber == 0xf0f03410) 
@@ -32,13 +31,18 @@ void FileSystem::debug(Disk *disk) {
 
 	// Read Inode blocks
 
-	for(uint32_t i = 1; i <= FileSystem::INODES_PER_BLOCK; i++)
+	for(uint32_t i = 1; i <= block.Super.InodeBlocks; i++)
 	{
+
+		Block iblock;
+		disk -> read(i, iblock.Data);
+
+		for(uint32_t j = 0; j < FileSystem::INODES_PER_BLOCK; j++)
 		if(block.Inodes[i].Valid)
 		{
-			std::cout << "Inode " << i + 1 << ":" << std::endl;
-			std::cout << "\t" << "size: " << block.Inodes[i].Size << std::endl;
-			std::cout << "\t" << "direct blocks: " << ceil( 1.0 * block.Inodes[i].Size / Disk::BLOCK_SIZE ) << std::endl;
+			std::cout << "Inode " << i * INODES_PER_BLOCK + j + 1 << ":" << std::endl;
+			std::cout << "\t" << "size: " << block.Inodes[j].Size << std::endl;
+			std::cout << "\t" << "direct blocks: " << ceil( 1.0 * block.Inodes[j].Size / Disk::BLOCK_SIZE ) << std::endl;
 		}
 	}
 }
@@ -80,12 +84,15 @@ bool FileSystem::format(Disk *disk) {
 	for(uint32_t i = 1; i <= block.Super.InodeBlocks; i++)
 	{
 		Block iblock;
+
 		for(uint32_t j = 0; j < FileSystem::INODES_PER_BLOCK; j++)
 		{
 			iblock.Inodes[j].Valid = 0;
 		}
+
 		disk -> Disk::write(i, &iblock);
 	}
+
 	std::cout << "Inode table written" << std::endl;
 
 	// Clear all other blocks
@@ -125,63 +132,62 @@ bool FileSystem::mount(Disk *disk) {
 		return false;
 	}
 
-	// Load Inode blocks into main memory
+	// Load Inode array into main memory
 
-	memInodes = new Block [memSuperBlock -> Super.InodeBlocks];
-	for(uint32_t i = 0; i < (memSuperBlock -> Super.InodeBlocks); i++)
+	memInodes = new Inode [memSuperBlock -> Super.Inodes];
+
+	for(uint32_t i = 0, j; i < memSuperBlock -> Super.InodeBlocks; i++)
 	{
-		disk -> read(i + 1, memInodes[i].Data);
+
+		Block block;
+		disk -> read(i + 1, block.Data);
+
+		for(j = 0; j < INODES_PER_BLOCK; j++)
+		{
+			memInodes[i * INODES_PER_BLOCK + j] = block.Inodes[j];
+		}
+
 	}
 
 	// Load bitmap into main memory by going through all the inodes
+	// TODO: Abstract this into a function
 
 	memBmap = new bool [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
+	/*
 	memBmap = 0;
 
-	for(uint32_t i = 1; i <= memSuperBlock -> Super.InodeBlocks; i++)
+	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
 	{
-		Block block;
-		disk -> read(i, &block.Data);
-
-		for(uint32_t j = 0; j < INODES_PER_BLOCK; j++)
+		for(uint32_t j = 0; j < POINTERS_PER_INODE; j++)
 		{
-			if(block.Inodes[j].Valid)
+			if(memInodes[i].Direct[j])
 			{
-				for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
-				{
-					if(block.Inodes[j].Direct[k] != BLOCK_UNSET)
-					{
-						memBmap[block.Inodes[j].Direct[k]] = true;
-					}
-				}
+				memBmap[memInodes[i].Direct[j]] = true;
 			}
 		}
 	}
-	
+	*/
 	return true;
 }
 
 // Create inode ----------------------------------------------------------------
-
 ssize_t FileSystem::create() {
-	// Locate free inode in inode table
 
-	for(uint32_t i = 0, j; i < memSuperBlock -> Super.InodeBlocks; i++)
+	// Locate free inode in inode array
+
+	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
 	{
-		for(j = 0; j < INODES_PER_BLOCK; j++)
-
-		if(!memInodes[i].Inodes[j].Valid)
+		if(!memInodes[i].Valid)
 		{
-			memInodes[i].Inodes[j].Valid = 1;
-			memInodes[i].Inodes[j].Size = 0;
-			for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
+			memInodes[i].Valid = 1;
+			memInodes[i].Size = 0;
+			for(uint32_t j = 0; j < POINTERS_PER_INODE; j++)
 			{
-				memInodes[i].Inodes[j].Direct[k] = 0;
+				memInodes[i].Direct[j] = 0;
 			}
-			memInodes[i].Inodes[j].Indirect = 0;
+			memInodes[i].Indirect = 0;
+			return i;
 		}
-
-		return i * INODES_PER_BLOCK + j;
 	}
 
 	return -1;
@@ -190,8 +196,8 @@ ssize_t FileSystem::create() {
 // Remove inode ----------------------------------------------------------------
 
 bool FileSystem::remove(size_t inumber) {
-	
-	// Out-of-bounds checks
+
+	//TODO: Abstract all checks into a private function
 
 	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
 	{
@@ -199,14 +205,9 @@ bool FileSystem::remove(size_t inumber) {
 		return false;
 	}
 
-	// TODO: abstract these into a private function
-
-	uint32_t blockNumber = inumber / INODES_PER_BLOCK;
-	uint32_t inodeNumber = inumber % INODES_PER_BLOCK;
-
 	// Double free check
 
-	if(!memInodes[blockNumber].Inodes[inodeNumber].Valid)
+	if(!memInodes[inumber].Valid)
 	{
 		std::cout << "Error: trying to deleting free inode" << std::endl;
 		return false;
@@ -214,43 +215,32 @@ bool FileSystem::remove(size_t inumber) {
 
 	// Clear inode in inode table
 
-	memInodes[blockNumber].Inodes[inodeNumber].Size = 0;
-	memInodes[blockNumber].Inodes[inodeNumber].Valid = 0;
+	memInodes[inumber].Size = 0;
+	memInodes[inumber].Valid = 0;
 
 	// Free direct blocks
 
 	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
 	{
-		memInodes[blockNumber].Inodes[inodeNumber].Direct[i] = 0;
+		memInodes[inumber].Direct[i] = 0;
 	}
 
 	// Free indirect blocks
 
-	memInodes[blockNumber].Inodes[inodeNumber].Indirect = 0;
+	memInodes[inumber].Indirect = 0;
 
 	// Update bitmap
-	// TODO:	improve efficiency by directly setting only freed blocks to false
-	// 			instead of rechecking every data block
 
-	memBmap = 0;
-	for(uint32_t i = 1; i <= memSuperBlock -> Super.InodeBlocks; i++)
+	// TODO: Abstract updating memBmap into a helper function
+
+	for(uint32_t j = 0; j < POINTERS_PER_INODE; j++)
 	{
-
-		for(uint32_t j = 0; j < INODES_PER_BLOCK; j++)
+		if(memInodes[inumber].Direct[j])
 		{
-			if(memInodes[i].Inodes[j].Valid)
-			{
-				for(uint32_t k = 0; k < POINTERS_PER_INODE; k++)
-				{
-					if(memInodes[i].Inodes[j].Direct[k] != BLOCK_UNSET)
-					{
-						memBmap[memInodes[i].Inodes[j].Direct[k]] = true;
-					}
-				}
-			}
+			memBmap[memInodes[inumber].Direct[j]] = true;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -258,8 +248,8 @@ bool FileSystem::remove(size_t inumber) {
 
 ssize_t FileSystem::stat(size_t inumber) {
 
-	// TODO: abstract these invalid checks into a private function
-	
+	// TODO: Abstract these invalid checks into a private function
+
 	// Out-of-bounds checks
 
 	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
@@ -268,20 +258,15 @@ ssize_t FileSystem::stat(size_t inumber) {
 		return -1;
 	}
 
-	// TODO: abstract these into a private function
-
-	uint32_t blockNumber = inumber / INODES_PER_BLOCK;
-	uint32_t inodeNumber = inumber % INODES_PER_BLOCK;
-
 	// Check for invalid inode
 
-	if(!memInodes[blockNumber].Inodes[inodeNumber].Valid)
+	if(!memInodes[inumber].Valid)
 	{
 		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
 		return -1;
 	}
 
-	return memInodes[blockNumber].Inodes[inodeNumber].Size;
+	return memInodes[inumber].Size;
 }
 
 // Read from inode -------------------------------------------------------------
