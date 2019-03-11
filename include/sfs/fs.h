@@ -47,7 +47,8 @@ class FileSystem {
 
 		bool *memBmap;
 		Block *memSuperBlock;
-		Block *memInodes;
+		Inode *memInodes;
+
 	public:
 		static void debug(Disk *disk);
 		static bool format(Disk *disk);
