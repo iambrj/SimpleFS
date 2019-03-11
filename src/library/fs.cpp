@@ -203,7 +203,7 @@ ssize_t FileSystem::create() {
 
 bool FileSystem::remove(size_t inumber) {
 
-	//TODO: Abstract all checks into a private function
+	//TODO: Abstract invalid checks into a private function
 
 	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
 	{
@@ -254,7 +254,7 @@ bool FileSystem::remove(size_t inumber) {
 
 ssize_t FileSystem::stat(size_t inumber) {
 
-	// TODO: Abstract these invalid checks into a private function
+	// TODO: Abstract invalid checks into a private function
 
 	// Out-of-bounds checks
 
