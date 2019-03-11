@@ -85,9 +85,15 @@ bool FileSystem::format(Disk *disk) {
 	{
 		Block iblock;
 
+		// Make all blocks invalid and set all direct pointers to zero
 		for(uint32_t j = 0; j < FileSystem::INODES_PER_BLOCK; j++)
 		{
 			iblock.Inodes[j].Valid = 0;
+
+			for(uint32_t k = 0; k < FileSystem::POINTERS_PER_INODE; k++)
+			{
+				iblock.Inodes[j].Direct[k] = 0;
+			}
 		}
 
 		disk -> Disk::write(i, &iblock);
@@ -153,20 +159,20 @@ bool FileSystem::mount(Disk *disk) {
 	// TODO: Abstract this into a function
 
 	memBmap = new bool [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
-	/*
-	memBmap = 0;
 
 	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
 	{
-		for(uint32_t j = 0; j < POINTERS_PER_INODE; j++)
+		for(uint32_t j = 0; j < FileSystem::POINTERS_PER_INODE; j++)
 		{
+
 			if(memInodes[i].Direct[j])
 			{
 				memBmap[memInodes[i].Direct[j]] = true;
 			}
+
 		}
 	}
-	*/
+
 	return true;
 }
 
