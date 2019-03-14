@@ -50,15 +50,40 @@ class FileSystem {
 		Inode *memInodes;
 
 	public:
+		// Print debugging information
+		// @param	disk		Pointer to a disk object
 		static void debug(Disk *disk);
+
+		// Format a disk image
+		// @param	disk		Pointer to a disk object
 		static bool format(Disk *disk);
 
+		// Mount a disk image
+		// @param	disk		Pointer to a disk object
 		bool mount(Disk *disk);
 
+		// Create an inode
 		ssize_t create();
+
+		// Remove an inode
+		// @param	inumber		Index into memInodes
 		bool    remove(size_t inumber);
+
+		// Print inode information
+		// @param	inumber		Index into memInodes
 		ssize_t stat(size_t inumber);
 
-		ssize_t read(size_t inumber, void *data, size_t length, size_t offset);
-		ssize_t write(size_t inumber, void *data, size_t length, size_t offset);
+		// Read from a filesystem
+		// @param	inumber		Index into memInodes
+		// @param	data		Pointer to location where data is to be read
+		// @param	length		Number of bytes to be read
+		// @param	offset		Offset where reading should start
+		ssize_t read(size_t inumber, char *data, size_t length, size_t offset);
+
+		// Write to a filesystem
+		// @param	inumber		Index into memInodes
+		// @param	data		Pointer to location where data is to be read
+		// @param	length		Number of bytes to be read
+		// @param	offset		Offset where reading should start
+		ssize_t write(size_t inumber, char *data, size_t length, size_t offset);
 };
