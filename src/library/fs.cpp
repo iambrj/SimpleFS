@@ -155,10 +155,10 @@ bool FileSystem::mount(Disk *disk) {
 
 	}
 
-	// Load bitmap into main memory by going through all the inodes
+	// Load blockmap into main memory by going through all the inodes
 	// TODO: Abstract this into a function
 
-	memBmap = new bool [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
+	memBmap = new Block [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
 
 	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
 	{
@@ -167,7 +167,7 @@ bool FileSystem::mount(Disk *disk) {
 
 			if(memInodes[i].Direct[j])
 			{
-				memBmap[memInodes[i].Direct[j]] = true;
+				disk -> read(memInodes[i].Direct[j], memBmap[memInodes[i].Direct[j]]);
 			}
 
 		}
@@ -278,12 +278,9 @@ ssize_t FileSystem::stat(size_t inumber) {
 // Read from inode -------------------------------------------------------------
 
 ssize_t FileSystem::read(size_t inumber, void *data, size_t length, size_t offset) {
-	// Load inode information
-
-	// Adjust length
+	// Load inode
 
 	// Read block and copy to data
-	return 0;
 }
 
 // Write to inode --------------------------------------------------------------

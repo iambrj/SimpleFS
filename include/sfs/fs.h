@@ -45,7 +45,7 @@ class FileSystem {
 
 		// Internal member variables
 
-		bool *memBmap;
+		Block *memBmap;
 		Block *memSuperBlock;
 		Inode *memInodes;
 
