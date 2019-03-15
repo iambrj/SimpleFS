@@ -39,8 +39,9 @@ class FileSystem {
 
 		// Internal helper functions
 
-		bool isInumberValid(ssize_t inumber);
-		uint32_t getBlockNumber(ssize_t inumber);
+		bool isInumberValid(size_t inumber);
+		uint32_t getBlockNumber(size_t inumber);
+		void loadMemBmap(Disk *disk);
 
 		// Internal member variables
 
