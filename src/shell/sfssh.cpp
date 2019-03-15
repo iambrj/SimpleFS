@@ -141,7 +141,7 @@ void do_umount(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2) {
     	return;
     }
 
-    if (fs.mount(&disk)) {
+    if (fs.umount(&disk)) {
     	printf("disk unmounted.\n");
     } else {
     	printf("unmount failed!\n");
