@@ -201,6 +201,13 @@ bool FileSystem::remove(size_t inumber) {
 	memInodes[inumber].Size = 0;
 	memInodes[inumber].Valid = 0;
 
+	// Update blockmap
+
+	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
+	{
+		strcpy((memBmap[memInodes[inumber].Direct[i]]).Data, "\0");
+	}
+
 	// Free direct blocks
 
 	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
@@ -211,13 +218,6 @@ bool FileSystem::remove(size_t inumber) {
 	// Free indirect blocks
 
 	memInodes[inumber].Indirect = 0;
-
-	// Update blockmap
-
-	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
-	{
-		strcpy((memBmap[memInodes[inumber].Direct[i]]).Data, "\0");
-	}
 
 	return true;
 }
@@ -238,19 +238,8 @@ ssize_t FileSystem::stat(size_t inumber) {
 
 ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offset) {
 
-	// Out-of-bounds checks
-
-	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	if(!isInumberValid(inumber))
 	{
-		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
-		return -1;
-	}
-
-	// Check for invalid inode
-
-	if(!memInodes[inumber].Valid)
-	{
-		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
 		return -1;
 	}
 
