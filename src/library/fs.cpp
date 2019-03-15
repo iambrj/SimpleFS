@@ -17,7 +17,7 @@ void FileSystem::debug(Disk *disk) {
 	disk -> read(0, block.Data);
 
 	std::cout << "SuperBlock:" << std::endl;
-	if(block.Super.MagicNumber == 0xf0f03410) 
+	if(block.Super.MagicNumber == FileSystem::MAGIC_NUMBER) 
 	{
 		std::cout << "magic number is valid" << std::endl;
 		std::cout << "\t" << block.Super.Blocks << " blocks" << std::endl;
@@ -58,8 +58,8 @@ bool FileSystem::format(Disk *disk) {
 	Block block;
 	std::cout << "Creating SuperBlock..." << std::endl;
 
-	std::cout << "Setting MagicNumber to 0xf0f03410" << std::endl; 
-	block.Super.MagicNumber = 0xf0f03410;
+	std::cout << "Setting MagicNumber to " << FileSystem::MAGIC_NUMBER << std::endl; 
+	block.Super.MagicNumber = FileSystem::MAGIC_NUMBER;
 	std::cout << "MagicNumber set" << std::endl;
 
 	std::cout << "Setting Blocks to " << disk -> size() << std::endl;
@@ -132,7 +132,7 @@ bool FileSystem::mount(Disk *disk) {
 
 	memSuperBlock = new Block;
 	disk -> read(0, memSuperBlock);
-	if(memSuperBlock -> Super.MagicNumber != 0xf0f03410)
+	if(memSuperBlock -> Super.MagicNumber != FileSystem::MAGIC_NUMBER)
 	{
 		std::cout << "MagicNumber missing!" << std::endl;
 		return false;
@@ -142,13 +142,13 @@ bool FileSystem::mount(Disk *disk) {
 
 	memInodes = new Inode [memSuperBlock -> Super.Inodes];
 
-	for(uint32_t i = 0, j; i < memSuperBlock -> Super.InodeBlocks; i++)
+	for(uint32_t i = 0; i < memSuperBlock -> Super.InodeBlocks; i++)
 	{
 
 		Block block;
 		disk -> read(i + 1, block.Data);
 
-		for(j = 0; j < INODES_PER_BLOCK; j++)
+		for(uint32_t j = 0; j < INODES_PER_BLOCK; j++)
 		{
 			memInodes[i * INODES_PER_BLOCK + j] = block.Inodes[j];
 		}
@@ -164,6 +164,52 @@ bool FileSystem::mount(Disk *disk) {
 	return true;
 }
 
+bool FileSystem::umount(Disk *disk) {
+
+	if(!disk -> mounted())
+	{
+		std::cout << "Already unmounted!" << std::endl;
+		return false;
+	}
+
+	// Flush SuperBlock to disk
+
+	disk -> write(0, memSuperBlock);
+
+	// Flush Inode array to disk
+
+	for(uint32_t i = 0; i < memSuperBlock -> Super.InodeBlocks; i++)
+	{
+
+		Block block;
+
+		for(uint32_t j = 0; j < FileSystem::INODES_PER_BLOCK; j++)
+		{
+			block.Inodes[j] = memInodes[i * FileSystem::INODES_PER_BLOCK + j];
+		}
+
+		disk -> write(i + 1, block.Data);
+	}
+
+	// Flush blocks to disk
+
+	for(size_t i = 0; i < memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1; i++)
+	{
+		disk -> write(i + memSuperBlock -> Super.InodeBlocks + 1, memBmap[i].Data);
+	}
+
+	// Set device and unmount
+	
+	disk -> unmount();
+
+	// Free in memory data structures
+
+	delete memSuperBlock;
+	delete memInodes;
+	delete memBmap;
+
+	return true;
+}
 // Create inode ----------------------------------------------------------------
 ssize_t FileSystem::create() {
 
@@ -269,10 +315,11 @@ ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offse
 		blocksRead++;
 	}
 
-	// Copy to required data and return blocksRead
+	// Copy to required data, delete buffer and return blocksRead
 
-	data = new char [length + 1];
+	data = new char [length + 1]; // not freed - memory leak?
 	strncpy(data, buffer + (offset % Disk::BLOCK_SIZE), length);
+	delete buffer;
 
 	return blocksRead;
 }
@@ -361,7 +408,6 @@ void FileSystem::loadMemBmap(Disk *disk)
 			{
 				disk -> read(memInodes[i].Direct[j], (memBmap[memInodes[i].Direct[j]]).Data);
 			}
-
 		}
 	}
 }
