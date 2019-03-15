@@ -20,6 +20,7 @@
 void do_debug(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
 void do_format(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
 void do_mount(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
+void do_umount(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
 void do_cat(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
 void do_copyout(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
 void do_create(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2);
@@ -70,6 +71,8 @@ int main(int argc, char *argv[]) {
 	    do_format(disk, fs, args, arg1, arg2);
 	} else if (streq(cmd, "mount")) {
 	    do_mount(disk, fs, args, arg1, arg2);
+	} else if(streq(cmd, "umount")) {
+		do_umount(disk, fs, args, arg1, arg2);
 	} else if (streq(cmd, "cat")) {
 	    do_cat(disk, fs, args, arg1, arg2);
 	} else if (streq(cmd, "copyout")) {
@@ -129,6 +132,19 @@ void do_mount(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2) {
     	printf("disk mounted.\n");
     } else {
     	printf("mount failed!\n");
+    }
+}
+
+void do_umount(Disk &disk, FileSystem &fs, int args, char *arg1, char *arg2) {
+    if (args != 1) {
+    	printf("Usage: umount\n");
+    	return;
+    }
+
+    if (fs.mount(&disk)) {
+    	printf("disk unmounted.\n");
+    } else {
+    	printf("unmount failed!\n");
     }
 }
 
