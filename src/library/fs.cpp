@@ -156,22 +156,10 @@ bool FileSystem::mount(Disk *disk) {
 	}
 
 	// Load blockmap into main memory by going through all the inodes
-	// TODO: Abstract this into a function
 
 	memBmap = new Block [memSuperBlock -> Super.Blocks - memSuperBlock -> Super.InodeBlocks - 1];
 
-	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
-	{
-		for(uint32_t j = 0; j < FileSystem::POINTERS_PER_INODE; j++)
-		{
-
-			if(memInodes[i].Direct[j])
-			{
-				disk -> read(memInodes[i].Direct[j], (memBmap[memInodes[i].Direct[j]]).Data);
-			}
-
-		}
-	}
+	loadMemBmap(disk);
 
 	return true;
 }
@@ -203,19 +191,8 @@ ssize_t FileSystem::create() {
 
 bool FileSystem::remove(size_t inumber) {
 
-	//TODO: Abstract invalid checks into a private function
-
-	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	if(!isInumberValid(inumber))
 	{
-		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
-		return false;
-	}
-
-	// Double free check
-
-	if(!memInodes[inumber].Valid)
-	{
-		std::cout << "Error: trying to deleting free inode" << std::endl;
 		return false;
 	}
 
@@ -235,16 +212,11 @@ bool FileSystem::remove(size_t inumber) {
 
 	memInodes[inumber].Indirect = 0;
 
-	// Update bitmap
+	// Update blockmap
 
-	// TODO: Abstract updating memBmap into a helper function
-
-	for(uint32_t j = 0; j < POINTERS_PER_INODE; j++)
+	for(uint32_t i = 0; i < POINTERS_PER_INODE; i++)
 	{
-		if(memInodes[inumber].Direct[j])
-		{
-			strcpy((memBmap[memInodes[inumber].Direct[j]]).Data, "\0");
-		}
+		strcpy((memBmap[memInodes[inumber].Direct[i]]).Data, "\0");
 	}
 
 	return true;
@@ -254,21 +226,8 @@ bool FileSystem::remove(size_t inumber) {
 
 ssize_t FileSystem::stat(size_t inumber) {
 
-	// TODO: Abstract invalid checks into a private function
-
-	// Out-of-bounds checks
-
-	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	if(!isInumberValid(inumber))
 	{
-		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
-		return -1;
-	}
-
-	// Check for invalid inode
-
-	if(!memInodes[inumber].Valid)
-	{
-		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
 		return -1;
 	}
 
@@ -376,7 +335,7 @@ ssize_t FileSystem::write(size_t inumber, char *data, size_t length, size_t offs
 
 // Internal helper functions --------------------------------------------------
 
-bool isInumberValid(ssize_t inumber)
+bool FileSystem::isInumberValid(size_t inumber)
 {
 	// Out-of-bounds checks
 
@@ -397,7 +356,23 @@ bool isInumberValid(ssize_t inumber)
 	return true;
 }
 
-bool getBlockNumber(ssize_t inumber)
+uint32_t FileSystem::getBlockNumber(size_t inumber)
 {
 	return inumber / FileSystem::INODES_PER_BLOCK + 1;
+}
+
+void FileSystem::loadMemBmap(Disk *disk)
+{
+	for(uint32_t i = 0; i < memSuperBlock -> Super.Inodes; i++)
+	{
+		for(uint32_t j = 0; j < FileSystem::POINTERS_PER_INODE; j++)
+		{
+
+			if(memInodes[i].Direct[j])
+			{
+				disk -> read(memInodes[i].Direct[j], (memBmap[memInodes[i].Direct[j]]).Data);
+			}
+
+		}
+	}
 }
