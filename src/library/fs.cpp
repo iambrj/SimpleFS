@@ -167,7 +167,7 @@ bool FileSystem::mount(Disk *disk) {
 
 			if(memInodes[i].Direct[j])
 			{
-				disk -> read(memInodes[i].Direct[j], memBmap[memInodes[i].Direct[j]]);
+				disk -> read(memInodes[i].Direct[j], (memBmap[memInodes[i].Direct[j]]).Data);
 			}
 
 		}
@@ -243,7 +243,7 @@ bool FileSystem::remove(size_t inumber) {
 	{
 		if(memInodes[inumber].Direct[j])
 		{
-			memBmap[memInodes[inumber].Direct[j]] = true;
+			strcpy((memBmap[memInodes[inumber].Direct[j]]).Data, "\0");
 		}
 	}
 
@@ -277,17 +277,127 @@ ssize_t FileSystem::stat(size_t inumber) {
 
 // Read from inode -------------------------------------------------------------
 
-ssize_t FileSystem::read(size_t inumber, void *data, size_t length, size_t offset) {
-	// Load inode
+ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offset) {
 
-	// Read block and copy to data
+	// Out-of-bounds checks
+
+	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	{
+		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
+		return -1;
+	}
+
+	// Check for invalid inode
+
+	if(!memInodes[inumber].Valid)
+	{
+		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
+		return -1;
+	}
+
+	// Load inode and initialize data
+
+	uint32_t startPointer = offset / Disk::BLOCK_SIZE;
+	uint32_t endPointer = (offset + length) / Disk::BLOCK_SIZE;
+	uint32_t blocksRead = 0;
+
+	data = 0;
+
+	// Check for overflow
+
+	if(endPointer >= FileSystem::POINTERS_PER_INODE)
+	{
+		endPointer = POINTERS_PER_INODE;
+	}
+
+	// Use temporary buffer to read blocks into
+
+	char* buffer = new char [(endPointer - startPointer) * Disk::BLOCK_SIZE];
+	buffer = 0;
+
+	for(uint32_t i = startPointer; i < endPointer; i++)
+	{
+		strcat(buffer, (memBmap[memInodes[inumber].Direct[i]]).Data);
+		blocksRead++;
+	}
+
+	// Copy to required data and return blocksRead
+
+	data = new char [length + 1];
+	strncpy(data, buffer + (offset % Disk::BLOCK_SIZE), length);
+
+	return blocksRead;
 }
 
 // Write to inode --------------------------------------------------------------
 
-ssize_t FileSystem::write(size_t inumber, void *data, size_t length, size_t offset) {
-	// Load inode
+ssize_t FileSystem::write(size_t inumber, char *data, size_t length, size_t offset) {
 
-	// Write block and copy to data
-	return 0;
+	// Out-of-bounds checks
+
+	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	{
+		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
+		return -1;
+	}
+
+	// Check for invalid inode
+
+	if(!memInodes[inumber].Valid)
+	{
+		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
+		return -1;
+	}
+
+	// Load inode and initialize data
+
+	uint32_t startPointer = offset / Disk::BLOCK_SIZE;
+	uint32_t endPointer = (offset + length) / Disk::BLOCK_SIZE;
+	uint32_t blocksWritten = Disk::BLOCK_SIZE * (endPointer - startPointer) + (Disk::BLOCK_SIZE - offset);
+
+	data = 0;
+
+	// Check for overflow
+
+	if(endPointer >= FileSystem::POINTERS_PER_INODE)
+	{
+		endPointer = POINTERS_PER_INODE;
+	}
+
+	// Write blocks to memBmap
+
+	for(uint32_t i = startPointer; i < endPointer; i++)
+	{
+		strcpy((memBmap[memInodes[inumber].Direct[i]]).Data, data + Disk::BLOCK_SIZE * (i - startPointer) - offset);
+	}
+
+	return blocksWritten;
+}
+
+// Internal helper functions --------------------------------------------------
+
+bool isInumberValid(ssize_t inumber)
+{
+	// Out-of-bounds checks
+
+	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	{
+		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
+		return false;
+	}
+
+	// Check for invalid inode
+
+	if(!memInodes[inumber].Valid)
+	{
+		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool getBlockNumber(ssize_t inumber)
+{
+	return inumber / FileSystem::INODES_PER_BLOCK + 1;
 }

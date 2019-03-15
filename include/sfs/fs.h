@@ -41,7 +41,6 @@ class FileSystem {
 
 		bool isInumberValid(ssize_t inumber);
 		uint32_t getBlockNumber(ssize_t inumber);
-		uint32_t getInodeNumber(ssize_t inumber);
 
 		// Internal member variables
 
@@ -61,6 +60,10 @@ class FileSystem {
 		// Mount a disk image
 		// @param	disk		Pointer to a disk object
 		bool mount(Disk *disk);
+
+		// Unmount a disk image
+		// @param	disk		Pointer to a disk object
+		bool umount(Disk *disk);
 
 		// Create an inode
 		ssize_t create();
