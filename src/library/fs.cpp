@@ -304,7 +304,7 @@ ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offse
 		endPointer = POINTERS_PER_INODE;
 	}
 
-	// Use temporary buffer to read blocks into
+	// Use temporary buffer to read blocks
 
 	char* buffer = new char [(endPointer - startPointer) * Disk::BLOCK_SIZE];
 	buffer = 0;
@@ -328,19 +328,8 @@ ssize_t FileSystem::read(size_t inumber, char *data, size_t length, size_t offse
 
 ssize_t FileSystem::write(size_t inumber, char *data, size_t length, size_t offset) {
 
-	// Out-of-bounds checks
-
-	if(inumber < 0 || inumber >= memSuperBlock -> Super.Inodes)
+	if(!isInumberValid(inumber))
 	{
-		std::cout << "Error: inumber = "<< inumber << " out of bounds" << std::endl;
-		return -1;
-	}
-
-	// Check for invalid inode
-
-	if(!memInodes[inumber].Valid)
-	{
-		std::cout << "Error: inumber " << inumber << " invalid" << std::endl;
 		return -1;
 	}
 
