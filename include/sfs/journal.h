@@ -38,13 +38,25 @@ class Journal {
 
 			// Internal helper functions
 
+			// Check if operation with given info has started yet
 			bool checkOperation(OpInfo opInfo);
 	public:
 			// Begin an operation
-			// @param
+			// @param	opCode	code denoting operation
+			// @param	opInfo	union with operation information
 
 			bool startOperation(ssize_t opCode, OpInfo opInfo);
-			bool endOperation();
+
+			// End an operation
+			// @param	opCode	code denoting operation
+			// @param	opInfo	union with operation information
+
+			bool endOperation(ssize_t opCode, OpInfo opInfo);
+
+			// Check for consistency of the journal
 			ssize_t checkJournal();
+
+			// Recover in memory data structres from the journal
+			// and finish incomplete operations
 			bool recoverJournal();
 };
